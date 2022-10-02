@@ -1,5 +1,5 @@
 # Tuxic
-As a renegate oldlonecoder, here is my own R&amp;D and personnal hobby code legacy.
+As a renegade oldlonecoder, here is my own R&amp;D and personnal hobby code legacy.
 ----------------------------------------------------------------------------------
 * It is Tuxic code at the opposite of the "standard mainstream". 
 * It is full of dangerous (and t'u'xic) raw pointers!
