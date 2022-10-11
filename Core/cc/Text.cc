@@ -188,6 +188,7 @@ namespace Tux
     }
 
 
+
     void Text::Compiler::CloseToken(TokenInfo& Info)
     {
         Info.Loc.Index = Info.Loc.End - B;
