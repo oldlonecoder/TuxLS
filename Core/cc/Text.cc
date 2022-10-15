@@ -273,10 +273,12 @@ namespace Tux
             {Text::TokenInfo::Mnemonic::Bg, &Text::Compiler::ParseBg},
             {Text::TokenInfo::Mnemonic::Color, &Text::Compiler::ParseColor},
             {Text::TokenInfo::Mnemonic::Ic, &Text::Compiler::ParseIcon},
+            //... Plus atrd, on aura les Grilles et Fenetres
             {Text::TokenInfo::Mnemonic::ClosingTag, &Text::Compiler::CloseAttribute},
         };
         while (!Eof())
         {
+            // on passe '<' 
             Skip();
             // Expecting Text::TokenInfo::Mnemonic::ArgSeq:
             Token = Text::TokenInfo::Scan(C);

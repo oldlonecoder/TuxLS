@@ -108,12 +108,12 @@ namespace Tux
             static constexpr Lexem EoSt      = ";";
             static constexpr Lexem LineBreak = "BR";
             static constexpr Lexem Accent    = "&";
-            static constexpr Lexem Left      = "|[";
-            static constexpr Lexem Right     = "|]";
-            static constexpr Lexem Top       = "|^";
-            static constexpr Lexem Bottom    = "|_";
-            static constexpr Lexem Center    = "|-";
-            static constexpr Lexem HVCenter  = "|+";
+            static constexpr Lexem Left      = "[";
+            static constexpr Lexem Right     = "]";
+            static constexpr Lexem Top       = "^";
+            static constexpr Lexem Bottom    = "_";
+            static constexpr Lexem Center    = "-"; // ex.: "<^-..." Top | Center 
+            static constexpr Lexem HVCenter  = "+";
             static constexpr Lexem Null      = "Unset";
 
             TokenInfo::Type T = TokenInfo::Type::Unset;
