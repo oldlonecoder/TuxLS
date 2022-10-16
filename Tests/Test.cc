@@ -23,7 +23,7 @@ using Tux::Rem;
 Tux::Expect<> TestText()
 {
     using Tux::Text;
-    Text Txt = " Allo  vous tous! ";
+    Text Txt = " Allo <Color: Yellow, Blue ;> vous tous! ";
     Txt.Compile();
     return Rem::Code::Ok;
 }

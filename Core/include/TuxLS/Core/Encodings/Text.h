@@ -93,6 +93,7 @@ namespace Tux
             {
                 const char* Begin = nullptr;
                 const char* End = nullptr;
+                const char* SBegin = nullptr;
                 int Index = -1;
             }Loc;
 
@@ -209,13 +210,13 @@ namespace Tux
 
             bool operator ++(); ///< Prefix
             bool operator ++(int); ///< Postfix
-            Expect<> Skip();
+            //Expect<> Skip();
             Text& TextRef;
 
             void CloseToken(TokenInfo& Info);
             Expect<> Compile();
-            Expect<Text::Attribute> CompileAttribute();
-            Expect<Text::Attribute> CompileAccent();
+            Expect<Text::Attribute> CompileAttribute(Text::Attribute& Attr);
+            Expect<Text::Attribute> CompileAccent(Text::Attribute& Attr);
             Expect<Text::TokenInfo> Scan();
 
             Text::TokenInfo SkipToAttr();

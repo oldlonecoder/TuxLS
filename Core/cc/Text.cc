@@ -10,6 +10,7 @@ namespace Tux
         {Text::TokenInfo::Type::Punctuation,    Text::TokenInfo::Mnemonic::OpenTag,     Text::TokenInfo::OpenSeq, 0},
         {Text::TokenInfo::Type::Punctuation,    Text::TokenInfo::Mnemonic::ClosingTag,  Text::TokenInfo::CloseSeq,0},
         {Text::TokenInfo::Type::Punctuation,    Text::TokenInfo::Mnemonic::ArgSeq,      Text::TokenInfo::ArgSeq,0},
+        {Text::TokenInfo::Type::Punctuation,    Text::TokenInfo::Mnemonic::ArgSep,      Text::TokenInfo::ArgSep,0},
         {Text::TokenInfo::Type::Punctuation,    Text::TokenInfo::Mnemonic::Eos,         Text::TokenInfo::EoSt,0},
         {Text::TokenInfo::Type::AttrCmd,        Text::TokenInfo::Mnemonic::Color,       Text::TokenInfo::ColorPair,2},
         {Text::TokenInfo::Type::AttrCmd,        Text::TokenInfo::Mnemonic::Fg,          Text::TokenInfo::Fg,1},
@@ -57,9 +58,12 @@ namespace Tux
         //Rem::Debug(SourceLocation) << " Entering with Start :[" << *Start << "] -> '" << Start << "':";
         if (!*Start)
             return {};
-
+        
         for (auto TokenRef : Text::TokenInfo::Referential)
         {
+            TokenRef.Loc.SBegin = Start;
+            while (isspace(*Start)) ++Start;
+
             auto crs = Start;
             const char* rtxt = TokenRef.L;
             auto sz = std::strlen(rtxt);
@@ -87,7 +91,7 @@ namespace Tux
                 return TokenRef; // On le retourne.... doh!
             }
         }
-        Rem::Debug(SourceName) << " " << *Start << " not a TokenRef";
+        Rem::Debug(SourceName) << " '" << *Start << "' not a TokenRef";
         return {}; // crs ( ou Start )  n'est pas sur un token du referentiel.
     }
 
@@ -184,17 +188,17 @@ namespace Tux
         return false;
     }
 
-    Expect<> Text::Compiler::Skip()
-    {
-        //Rem::Debug() << " Text::TextParser::Skip(" << Color::Yellow << *C << Color::Reset << "):";
-        while (C <= E)
-        {
-            ++C;
-            if (!isspace(*C))
-                return Rem::Code::Accepted;
-        }
-        return Rem::Code::Eof;
-    }
+    //Expect<> Text::Compiler::Skip()
+    //{
+    //    //Rem::Debug() << " Text::TextParser::Skip(" << Color::Yellow << *C << Color::Reset << "):";
+    //    while (C <= E)
+    //    {
+    //        ++C;
+    //        if (!isspace(*C))
+    //            return Rem::Code::Accepted;
+    //    }
+    //    return Rem::Code::Eof;
+    //}
 
 
 
@@ -239,24 +243,31 @@ namespace Tux
         {
 
             auto Token = SkipToAttr();
+            Text::Attribute Attr;
+            Expect<Text::Attribute> A;
             if (!Token) return Rem::Code::Eof;
 
             Rem::Debug(SourceName) << Rem::Code::Endl << Token.Mark(B);
 
-            Expect<Text::Attribute> Attr; // init &agrave; false;
 
             if (Token.M == Text::TokenInfo::Mnemonic::AccentSeq)
-                Attr = CompileAccent();
-            else if (Token.M == Text::TokenInfo::Mnemonic::OpenTag)
-                Attr = CompileAttribute();
-
-            if (!Attr)
             {
-                Rem::Debug(SourceName) << " No attribute. Skipping to next \"OpenTag | AccentSeq\"...";
-                Skip();
-                continue;
+                Attr.Begin = Token.Loc.Begin;
+                A = CompileAccent(Attr);
+            }
+            else if (Token.M == Text::TokenInfo::Mnemonic::OpenTag)
+            {
+                Attr.Begin = Token.Loc.Begin;
+                A = CompileAttribute(Attr);
             }
 
+            if (!A)
+            {
+                Rem::Debug(SourceName) << " No attribute. Skipping to next \"OpenTag | AccentSeq\"...";
+                //Skip();
+                continue;
+            }
+            TextRef.PushAttribute(Attr);
 
         }
         return Rem::Code::Accepted;
@@ -271,9 +282,9 @@ namespace Tux
 
         @note  "Lexing And Parsing... tout &ccedile;a en m&ecirc;me temps!".
     */
-    Expect<Text::Attribute> Text::Compiler::CompileAttribute()
+    Expect<Text::Attribute> Text::Compiler::CompileAttribute(Text::Attribute& Attr)
     {
-        Text::Attribute Attr;
+        
         Text::TokenInfo Token;
         // On tokenize les elements d'attribut: ( Stop: ClosingTag('>') Token )
         std::map<Text::TokenInfo::Mnemonic, Text::Compiler::ParserFnPtr> Parsers =
@@ -288,7 +299,7 @@ namespace Tux
         while (!Eof())
         {
             // on passe '<' 
-            Skip();
+            //Skip();
             Expect<> ER;
             // Expecting Text::TokenInfo::Mnemonic:
             Token = Text::TokenInfo::Scan(C);
@@ -307,7 +318,11 @@ namespace Tux
                 break;
             }
             if (Token.M == Text::TokenInfo::Mnemonic::ClosingTag)
+            {
+                SkipToken(Token);
+                Attr.End = Token.Loc.End;
                 return Attr; // Peut &ecirc;tre vide si on es sur "<>"
+            }
         }
         return Rem::Syntax(SourceName) << " Unexpected end of stream in Attribute parsing";
     }
@@ -319,12 +334,11 @@ namespace Tux
 
         @note Encoder un Accent est le plus facile, donc pas besoin d'accumuler les tokens ici: juste "parser" '&' + Id + ';' c'est tout!
     */
-    Expect<Text::Attribute> Text::Compiler::CompileAccent()
+    Expect<Text::Attribute> Text::Compiler::CompileAccent(Text::Attribute& Attr)
     {
 
-        Text::Attribute A;
         Text::TokenInfo Token;
-        Skip();
+        //Skip();
         if(Eof())
             return Rem(Rem::Type::Syntax) << " Expected identifier.";
 
@@ -340,12 +354,12 @@ namespace Tux
         if (T == Accent::Err)
             return Rem::Syntax(SourceName) << " Unknown Code token(identifier) " << Rem::Code::Endl << Token.Mark(B);
 
-        A = Text::Attribute(Token);
-        A.Ac = T;
+        Attr = Text::Attribute(Token);
+        Attr.Ac = T;
 
         //Mandatory expect ';'
         (void)SkipToken(Token);
-        if(CheckEos(A)) return A;
+        if(CheckEos(Attr)) return Attr;
         return Rem::Syntax(SourceName) << " Expected Eos ';' (End Of Statement token)." << Rem::Code::Endl << Mark();
     }
 
@@ -379,7 +393,7 @@ namespace Tux
             }
             Token.Loc.Begin = Token.Loc.End = C;
             Token.Loc.Index = C - TextRef.c_str();
-
+            SkipToken(Token);
             return Token;
         }
         return {};
@@ -416,7 +430,7 @@ namespace Tux
         if ((Token.T != TokenInfo::Type::Punctuation) || (Token.L != Text::TokenInfo::ArgSeq))
             return Rem::Syntax(SourceName) << " Expected token ':' " << Rem::Code::Endl << Mark();
 
-        Skip();
+        //Skip();
         Token = ScanIdentifier();
         if (!Token)
             return Rem::Syntax(SourceName) << " Expected Identifier token." << Rem::Code::Endl << Mark();
@@ -437,7 +451,7 @@ namespace Tux
         if ((Token.T != TokenInfo::Type::Punctuation) || (Token.L != Text::TokenInfo::ArgSeq))
             return Rem::Syntax(SourceName) << " Expected token ':'\n" << Mark();
 
-        Skip();
+        //Skip();
         Token = ScanIdentifier();
         if (!Token)
             return Rem::Syntax(SourceName) << " Expected Identifier token." << Rem::Code::Endl << Mark();
@@ -481,7 +495,7 @@ namespace Tux
         if (Token.M != Text::TokenInfo::Mnemonic::ArgSeq)
             return Rem::Syntax(SourceName) << Rem::Code::Unexpected << Rem::Code::Endl << Token.Mark(B);
 
-        Skip();
+        SkipToken(Token);
         
         Token = ScanIdentifier();
         if(!Token)
@@ -492,8 +506,6 @@ namespace Tux
 
         A.Fg = *R;
         // Ici on doit verfifer si on a une virgule ou eos ou closing tag;
-
-        SkipToken(Token); // Skip le color ID de FG
         // Expect "," | ';' | '>'.
         
         Token = Text::TokenInfo::Scan(C);
@@ -514,14 +526,13 @@ namespace Tux
         }
         // Ici on a obligatoirement argsep:
 
-        Skip();
+        SkipToken(Token);
         
         Token = ScanIdentifier();
         //...
         R = ColorID(Token);
         if (!R) return R();
         A.Bg = *R;
-        SkipToken(Token);
         return CheckEos(A);
     }
 
@@ -535,20 +546,20 @@ namespace Tux
 
     Expect<> Text::Compiler::CloseAttribute(Text::Attribute& A)
     {
-        TextRef.PushAttribute(A);
-        return Rem::Code::Ok;
+        //TextRef.PushAttribute(A);
+        return Rem::Code::Accepted;
     }
 
     Expect<> Text::Compiler::CheckEos(Text::Attribute& A)
     {
-        Skip();
+        //Skip();
         auto Token = Text::TokenInfo::Scan(C);
         if ( (!Token) || ((Token.M != Text::TokenInfo::Mnemonic::Eos) && (Token.M != Text::TokenInfo::Mnemonic::ClosingTag)))
             return Rem::Syntax(SourceName) << " Expected ';'" << Rem::Code::Endl << Token.Mark(B);
 
         if (Token.M == Text::TokenInfo::Mnemonic::ClosingTag)
         {
-            TextRef.PushAttribute(A);
+           
             return Rem::Code::Accepted;
         }
         SkipToken(Token);
@@ -559,6 +570,8 @@ namespace Tux
     Text::TokenInfo Text::Compiler::ScanIdentifier()
     {
         const char* Sc = C;
+        while (isspace(*Sc)) ++Sc;
+        C = Sc;
         if (!isalpha(*Sc) && (*Sc != '_'))
         {
             Rem::Syntax(SourceName) << Rem::Code::Expected << " Identifier. Got " << *Sc << " instead.";
@@ -577,7 +590,8 @@ namespace Tux
 
     Expect<> Text::Compiler::SkipToken(Text::TokenInfo& Token)
     {
-        C += 1 + Token.Loc.End - Token.Loc.Begin;
+        C = Token.Loc.End;
+        C++;
         return Rem::Code::Accepted;
     }
 
