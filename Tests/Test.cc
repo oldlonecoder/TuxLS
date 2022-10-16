@@ -23,7 +23,7 @@ using Tux::Rem;
 Tux::Expect<> TestText()
 {
     using Tux::Text;
-    Text Txt = " Allo &agrave; vous tous! ";
+    Text Txt = " Allo  vous tous! ";
     Txt.Compile();
     return Rem::Code::Ok;
 }
@@ -42,9 +42,9 @@ Tux::Expect<> TestWidget()
 
     auto Painter = *W->PainterDC();
     Painter.GotoXY({1,1});
-    Painter << "Je suis le TopLevel Widget ce texte &agrave; la position : {1, 1}.";
-
-    Tux::Label* Lbl = new Tux::Label(W, " Bienvenue &agrave; TuxLS! Je suis un <F:Yellow; Icon:ArrowRight;> Tux::Label! <F: Yellow;> @{5,2} <FB: Reset;> ", Tux::Point(5,2));
+    //Painter << "Je suis le TopLevel Widget ce texte &agrave; la position : {1, 1}.";
+    Painter << "Je suis le TopLevel Widget ce texte " << Accent::agrave << " la position : {1, 1}.";
+    Tux::Label* Lbl = new Tux::Label(W, " Bienvenue &agrave; TuxLS! Je suis un <F:Yellow; Icon:ArrowRight;> Tux::Label! <F: Yellow;> @{5,2} <color: Reset,Yellow;> ", Tux::Point(5,2));
     W->Draw();
     W->Update();
 #ifdef _WIN32

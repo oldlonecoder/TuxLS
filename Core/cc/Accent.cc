@@ -88,7 +88,7 @@ namespace Tux
             {"Ocirc",  Ocirc },
             {"Ugrave", Ugrave},
             {"Ucirc",  Ucirc },
-            {"Icirc",   Icirc}
+            {"Icirc",  Icirc}
         };
         for (auto const& [k, t] : Map)
         {

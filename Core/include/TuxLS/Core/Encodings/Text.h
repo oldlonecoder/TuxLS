@@ -99,22 +99,22 @@ namespace Tux
             using Lexem                       = const char*;
             static constexpr Lexem Fg        = "FG";
             static constexpr Lexem Bg        = "BG";
-            static constexpr Lexem ColorPair = "COLOR";
+            static constexpr Lexem ColorPair  = "COLOR";
             static constexpr Lexem Icon      = "ICON";
-            static constexpr Lexem OpenSeq   = "<";
-            static constexpr Lexem CloseSeq  = ">";
-            static constexpr Lexem ArgSeq    = ":";
-            static constexpr Lexem ArgSep    = ",";
-            static constexpr Lexem EoSt      = ";";
-            static constexpr Lexem LineBreak = "BR";
-            static constexpr Lexem Accent    = "&";
-            static constexpr Lexem Left      = "[";
-            static constexpr Lexem Right     = "]";
-            static constexpr Lexem Top       = "^";
-            static constexpr Lexem Bottom    = "_";
-            static constexpr Lexem Center    = "-"; // ex.: "<^-..." Top | Center 
-            static constexpr Lexem HVCenter  = "+";
-            static constexpr Lexem Null      = "Unset";
+            static constexpr Lexem OpenSeq    = "<";
+            static constexpr Lexem CloseSeq   = ">";
+            static constexpr Lexem ArgSeq     = ":";
+            static constexpr Lexem ArgSep     = ",";
+            static constexpr Lexem EoSt       = ";";
+            static constexpr Lexem LineBreak  = "BR";
+            static constexpr Lexem Accent     = "&";
+            static constexpr Lexem Left       = "[";
+            static constexpr Lexem Right      = "]";
+            static constexpr Lexem Top        = "^";
+            static constexpr Lexem Bottom     = "_";
+            static constexpr Lexem Center     = "-"; // ex.: "<^-..." Top | Center 
+            static constexpr Lexem HVCenter   = "+";
+            static constexpr Lexem Null       = "Unset";
 
             TokenInfo::Type T = TokenInfo::Type::Unset;
             TokenInfo::Mnemonic M = TokenInfo::Mnemonic::Null;
@@ -241,5 +241,7 @@ namespace Tux
             Expect<> CheckEos(Text::Attribute& A);
             std::string Mark();
         };
+
+        static Text::TokenInfo Scan(Text::TokenInfo::Mnemonic M);
     };
 }

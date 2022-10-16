@@ -145,6 +145,15 @@ namespace Tux
         Attributes.push_back(Attr);
     }
 
+    Text::TokenInfo Text::Scan(Text::TokenInfo::Mnemonic M)
+    {
+        for (auto iM : Text::TokenInfo::Referential)
+        {
+            if (iM.M == M) return iM;
+        }
+        return {};
+    }
+
 
     //     Text::Attribute::Attribute(const char* Start)
     //     {
@@ -273,30 +282,26 @@ namespace Tux
             {Text::TokenInfo::Mnemonic::Bg, &Text::Compiler::ParseBg},
             {Text::TokenInfo::Mnemonic::Color, &Text::Compiler::ParseColor},
             {Text::TokenInfo::Mnemonic::Ic, &Text::Compiler::ParseIcon},
-            //... Plus atrd, on aura les Grilles et Fenetres
+            //... Plus tard, on aura les Grilles et Fenetres
             {Text::TokenInfo::Mnemonic::ClosingTag, &Text::Compiler::CloseAttribute},
         };
         while (!Eof())
         {
             // on passe '<' 
             Skip();
-            // Expecting Text::TokenInfo::Mnemonic::ArgSeq:
+            Expect<> ER;
+            // Expecting Text::TokenInfo::Mnemonic:
             Token = Text::TokenInfo::Scan(C);
             if (!Token)
-                return Rem::Syntax(SourceName) << " Expected Token ':' (Attribute value assignation mark)" << Rem::Code::Endl << Mark();
-            Skip();
-
-            Token = ScanIdentifier();
-            if(!Token)
-                return Rem::Syntax(SourceName) << " Expected Token Attribute value identifier." << Rem::Code::Endl << Mark();
-            Skip();
+                return Rem::Syntax(SourceName) << " Expected ACM (Attribute Command Mnemonic) Token" << Rem::Code::Endl << Mark();
 
             // Ici c'est obligatoire de faire une boucle qui teste explicitement les mnemonics sp&eacute;cifiques
             // parce qu'on ne prend en charge tous les mnemonics.
             for (auto [M, Fn] : Parsers)
             {
                 if (M != Token.M) continue;
-                auto ER = (this->*Fn)(Attr);
+                SkipToken(Token);
+                ER = (this->*Fn)(Attr);
                 if (!ER)
                     return ER();
                 break;
@@ -304,7 +309,7 @@ namespace Tux
             if (Token.M == Text::TokenInfo::Mnemonic::ClosingTag)
                 return Attr; // Peut &ecirc;tre vide si on es sur "<>"
         }
-        return Attr;
+        return Rem::Syntax(SourceName) << " Unexpected end of stream in Attribute parsing";
     }
 
 
@@ -354,9 +359,10 @@ namespace Tux
 
         while (!Eof())
         {
-            if (toupper(*C) != TokenInfo::OpenSeq[0])
+            auto c = toupper(*C);
+            if (c != TokenInfo::OpenSeq[0])
             {
-                if (toupper(*C) != TokenInfo::Accent[0])
+                if (c != TokenInfo::Accent[0])
                 {
                     ++C;
                     continue;
@@ -405,22 +411,45 @@ namespace Tux
     {
         // C sur 'Fg'; ( Consomm&eacute; )
         // Attendus :  ':' , 'ColorID', '; | >';
+        
         auto Token = Text::TokenInfo::Scan(C);
         if ((Token.T != TokenInfo::Type::Punctuation) || (Token.L != Text::TokenInfo::ArgSeq))
-            return Rem::Syntax(SourceName) << " Expected token ':'" << Rem::Code::Endl << Mark();
+            return Rem::Syntax(SourceName) << " Expected token ':' " << Rem::Code::Endl << Mark();
 
         Skip();
         Token = ScanIdentifier();
+        if (!Token)
+            return Rem::Syntax(SourceName) << " Expected Identifier token." << Rem::Code::Endl << Mark();
 
         auto R = ColorID(Token);
         if (!R) return R() << " in ParseFg";
-        A.Fg = *R;
+        A.Bg = *R;
+
+        Rem::Output() << " Compiler::ParseFg - Token:" << Rem::Code::Endl << Token.Mark(B);
+        return CheckEos(A);
+    }
+
+    Expect<> Text::Compiler::ParseBg(Text::Attribute& A)
+    {
+        // C sur 'Fg'; ( Consomm&eacute; )
+        // Attendus :  ':' , 'ColorID', '; | >';
+        auto Token = Text::TokenInfo::Scan(C);
+        if ((Token.T != TokenInfo::Type::Punctuation) || (Token.L != Text::TokenInfo::ArgSeq))
+            return Rem::Syntax(SourceName) << " Expected token ':'\n" << Mark();
+
+        Skip();
+        Token = ScanIdentifier();
+        if (!Token)
+            return Rem::Syntax(SourceName) << " Expected Identifier token." << Rem::Code::Endl << Mark();
+
+        auto R = ColorID(Token);
+        if (!R) return R() << " in ParseFg";
+        A.Bg = *R;
 
         Rem::Output() << " Compiler::ParseFg - Token:" << Rem::Code::Endl << Token.Mark(B);
 
         return CheckEos(A);
     }
-
 
    std::string Text::Compiler::Mark()
    {
@@ -441,53 +470,62 @@ namespace Tux
 
 
 
-    Expect<> Text::Compiler::ParseBg(Text::Attribute& A)
-    {
-        // C sur 'Fg'; ( Consomm&eacute; )
-        // Attendus :  ':' , 'ColorID', '; | >';
-        auto Token = Text::TokenInfo::Scan(C);
-        if ((Token.T != TokenInfo::Type::Punctuation) || (Token.L != Text::TokenInfo::ArgSeq))
-            return Rem::Syntax(SourceName) << " Expected token ':'\n" << Mark();
+    
 
-        Skip();
-        Token = ScanIdentifier();
-
-        auto R = ColorID(Token);
-        if (!R) return R() << " in ParseFg";
-        A.Bg = *R;
-
-        Rem::Output() << " Compiler::ParseFg - Token:" << Rem::Code::Endl << Token.Mark(B);
-
-        return CheckEos(A);
-    }
 
     Expect<> Text::Compiler::ParseColor(Text::Attribute& A)
     {
-        Color::Type* C = &A.Fg;
 
-        Skip();
-        auto Token = Text::TokenInfo::Scan(this->C);
+        auto Token = Text::TokenInfo::Scan(C);
 
         if (Token.M != Text::TokenInfo::Mnemonic::ArgSeq)
             return Rem::Syntax(SourceName) << Rem::Code::Unexpected << Rem::Code::Endl << Token.Mark(B);
+
         Skip();
+        
         Token = ScanIdentifier();
+        if(!Token)
+            return Rem::Syntax(SourceName) << " Expected Identifier token." << Rem::Code::Endl << Mark();
+
         auto R = ColorID(Token);
         if (!R) return R();
-        *C = *R;
 
-        C = &A.Bg;
+        A.Fg = *R;
+        // Ici on doit verfifer si on a une virgule ou eos ou closing tag;
+
+        SkipToken(Token); // Skip le color ID de FG
+        // Expect "," | ';' | '>'.
+        
+        Token = Text::TokenInfo::Scan(C);
+        if ((Token.M != Text::TokenInfo::Mnemonic::ArgSep) && (Token.M != Text::TokenInfo::Mnemonic::Eos) && (Token.M != Text::TokenInfo::Mnemonic::ClosingTag))
+            return Rem::Syntax(SourceName) << "Expected ',' (arg separator) or eos (';') or closing tag ('>') " << Rem::Code::Endl << Token.Mark(B);
+        
+        if ((Token.M == Text::TokenInfo::Mnemonic::Eos) || (Token.M == Text::TokenInfo::Mnemonic::ClosingTag))
+        {
+            if (A.Fg == Color::Reset)
+            {
+                A.Bg = A.Fg;
+                if(Token.M == Text::TokenInfo::Mnemonic::Eos)
+                    SkipToken(Token);
+
+                return Rem::Code::Accepted;
+            }
+
+        }
+        // Ici on a obligatoirement argsep:
+
         Skip();
-        Token = Text::TokenInfo::Scan(this->C);
-        if (Token.M != Text::TokenInfo::Mnemonic::ArgSep)
-            return Rem::Syntax(SourceName) << Rem::Code::Unexpected << Rem::Code::Endl << Token.Mark(B);
-        Skip();
+        
         Token = ScanIdentifier();
+        //...
         R = ColorID(Token);
         if (!R) return R();
-        *C = *R;
+        A.Bg = *R;
+        SkipToken(Token);
         return CheckEos(A);
     }
+
+
 
     Expect<> Text::Compiler::ParseLineBreak(Text::Attribute& A)
     {
@@ -511,7 +549,7 @@ namespace Tux
         if (Token.M == Text::TokenInfo::Mnemonic::ClosingTag)
         {
             TextRef.PushAttribute(A);
-            //...
+            return Rem::Code::Accepted;
         }
         SkipToken(Token);
         return Rem::Code::Accepted;
@@ -554,7 +592,7 @@ namespace Tux
                 return Rem::Error() << " Expected Color::Type name (strict case match). Got '" << Color::Yellow << Str << Color::White << "' instead:" << Rem::Code::Endl
                 << Token.Mark(B);
         }
-
+        SkipToken(Token);
         return Colr;
     }
 
