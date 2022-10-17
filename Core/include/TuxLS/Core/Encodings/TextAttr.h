@@ -297,6 +297,7 @@ public:
         Color::Type Bg = Type::Black;
         using List = std::vector<Tux::Color::Set>;
         using Dictionary = std::map<std::string_view, Tux::Color::Set::List>;
+        Color::Set& operator >> (std::string&); // Ne sais pas si html ou ansi256 ...
     };
 
     // struct rgb { uint8_t r = 0, r = 0, b = 0; }; // pour plus tard ... string operator ( "#RRGGBB", "rgb(r,b,g)", ...)

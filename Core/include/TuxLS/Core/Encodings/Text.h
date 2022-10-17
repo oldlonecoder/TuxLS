@@ -27,6 +27,10 @@ namespace Tux
     */
     class CORE_LIB Text : public String
     {
+
+        Color::Format F = Color::Format::Ansi256;
+
+
     public:
 
         /**
@@ -50,7 +54,7 @@ namespace Tux
             */
         ~Text() override;
         Expect<> Compile();
-
+        Expect<> operator >> (std::string&);
         struct CORE_LIB TokenInfo
         {
             enum class Type : uint8_t
@@ -160,14 +164,24 @@ namespace Tux
 
         struct CORE_LIB Attribute
         {
+            // ============ Indiquer c'est quoi qu'il faut lire!!!!!! ======================
             Color::Type Fg  = Color::Black;
             Color::Type Bg  = Color::Black;
             Icon::Type Ic   = Icon::NullPtr;
             Accent::Type Ac = Accent::Err;
-
+            // =============================================================================
             const char* Begin = nullptr;
             const char* End   = nullptr;
             const char* C     = nullptr;
+
+            struct Assigned
+            {
+                int8_t For : 1;
+                int8_t Bac : 1;
+                int8_t Ic : 1;
+                int8_t Acc : 1;
+            }Assign = {0};
+
 
             Attribute() = default;
             Attribute(TokenInfo& Info);
@@ -175,6 +189,7 @@ namespace Tux
             Attribute(const Attribute&) = default;
             ~Attribute() = default;
             std::string Infos();
+            std::string operator()() const;
 
             Attribute& operator = (Attribute&&) noexcept = default;
             Attribute& operator = (const Attribute&) = default;

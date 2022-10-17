@@ -137,11 +137,72 @@ namespace Tux
         Rem::Debug(SourceLocation) << " Number of compiled Attribute(s) :" << Attributes.size();
         for (auto A : Attributes)
         {
-            Rem::Infomation() << A.Infos();
+            Rem::Infomation() << A();
             Rem::Output() << Color::White << "Fg:" << Color::Yellow << static_cast<int>(A.Fg) << Color::White << ", Bg:" << Color::Yellow << static_cast<int>(A.Bg);
             Rem::Output() << Color::White << "Icon:" << Color::Yellow << static_cast<int>(A.Ic) << Color::Reset;
         }
         return Rem::Code::Accepted;
+    }
+
+    Expect<> Text::operator>>(std::string& Out)
+    {
+        
+        const char* r = c_str();
+        auto l = Length();
+        const char* b = r;
+
+        std::string AttrStr;
+
+        for (auto const& A : Attributes)
+        {
+           
+            while (r != A.Begin)
+            {
+                Out += *r;
+                r++;
+            }
+            r += A().length();
+            if(A.Assign.For && A.Assign.Bac)
+            {
+                Color::Set(A.Fg, A.Bg) >> AttrStr;
+                Out += AttrStr;
+            }
+            else
+            {
+
+                if (A.Assign.Bac)
+                {
+                    AttrStr = F == Color::Format::Ansi256 ? Attr<Color::Format::Ansi256>::Bg(A.Bg) : Attr<Color::Format::Html>::Bg(A.Bg);
+                    Out += AttrStr;
+                }
+                else
+                if (A.Assign.For)
+                {
+                    AttrStr = F == Color::Format::Ansi256 ? Attr<Color::Format::Ansi256>::Fg(A.Fg) : Attr<Color::Format::Html>::Fg(A.Fg);
+                    Out += AttrStr;
+                }
+            }
+            
+            if (A.Assign.Acc)
+            {
+                AttrStr = Tux::Accent::Data[A.Ac];
+                Out += AttrStr;
+            }
+            else 
+            {
+                if (A.Assign.Ic)
+                {
+                    AttrStr = Tux::Icon::Data[A.Ic];
+                    Out += AttrStr;
+                }
+                //...
+            }
+        }
+        while ((r - b) < l)
+        {
+            Out += *r++;
+        }
+        return Rem::Code::Ok;
     }
 
     void Text::PushAttribute(Text::Attribute Attr)
@@ -356,7 +417,7 @@ namespace Tux
 
         Attr = Text::Attribute(Token);
         Attr.Ac = T;
-
+        Attr.Assign.Acc = 1;
         //Mandatory expect ';'
         (void)SkipToken(Token);
         if(CheckEos(Attr)) return Attr;
@@ -406,8 +467,9 @@ namespace Tux
        auto Token = Text::TokenInfo::Scan(C);
        if (Token.T != Text::TokenInfo::Type::Punctuation)
            return Rem::Syntax(SourceName) << " Expected Punctuation token ':'" << Mark();
-
+       SkipToken(Token);
        Token = ScanIdentifier();
+       Rem::Debug(SourceName) << " Icon ID : '" << Token() << "' :";
         auto R = IconID(Token);
         if (!R)
         {
@@ -415,7 +477,7 @@ namespace Tux
             return {};
         }
         A.Ic = *R;
-        SkipToken(Token);
+        A.Assign.Ic = 1;
         return CheckEos(A);
     }
 
@@ -437,8 +499,8 @@ namespace Tux
 
         auto R = ColorID(Token);
         if (!R) return R() << " in ParseFg";
-        A.Bg = *R;
-
+        A.Fg = *R;
+        A.Assign.For = 1;
         Rem::Output() << " Compiler::ParseFg - Token:" << Rem::Code::Endl << Token.Mark(B);
         return CheckEos(A);
     }
@@ -459,7 +521,7 @@ namespace Tux
         auto R = ColorID(Token);
         if (!R) return R() << " in ParseFg";
         A.Bg = *R;
-
+        A.Assign.Bac = 1;
         Rem::Output() << " Compiler::ParseFg - Token:" << Rem::Code::Endl << Token.Mark(B);
 
         return CheckEos(A);
@@ -505,6 +567,7 @@ namespace Tux
         if (!R) return R();
 
         A.Fg = *R;
+        A.Assign.For = 1;
         // Ici on doit verfifer si on a une virgule ou eos ou closing tag;
         // Expect "," | ';' | '>'.
         
@@ -533,6 +596,7 @@ namespace Tux
         R = ColorID(Token);
         if (!R) return R();
         A.Bg = *R;
+        A.Assign.Bac = 1;
         return CheckEos(A);
     }
 
@@ -563,6 +627,7 @@ namespace Tux
             return Rem::Code::Accepted;
         }
         SkipToken(Token);
+        A.End = Token.Loc.End;
         return Rem::Code::Accepted;
     }
 
@@ -618,14 +683,14 @@ namespace Tux
         Icon::Type IconId = Icon::Scan(Str);
         if (IconId == Icon::NullPtr)
             return Rem::Error() << " Expected Icon::Type name. Got '" << Color::Yellow << Str << Color::White << "' instead:" << Rem::Code::Endl << Token.Mark(B);
-
+        SkipToken(Token);
         return IconId;
     }
 
 
     Text::Attribute::Attribute(TokenInfo& aInfo) : Begin(aInfo.Loc.Begin-1), End(aInfo.Loc.End), C(nullptr) {}
 
-    std::string Text::Attribute::Infos()
+    std::string Text::Attribute::operator()() const
     {
         if (End)
         {
@@ -637,7 +702,11 @@ namespace Tux
             std::string Str{ Begin };
             return Str;
         }
-        return "Implement Siou-Plais...";
+    }
+
+    std::string Text::Attribute::Infos()
+    {
+        return "implement";
     }
 
 

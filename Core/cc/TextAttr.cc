@@ -369,4 +369,12 @@ std::string Color::Name(Color::Type aColorEnum)
 }
 
 
+Color::Set& Color::Set::operator>>(std::string& Out)
+{
+    std::ostringstream Work;
+    Work << "\033[48;5;" << static_cast<int>(Bg) << ";38;5;" << static_cast<int>(Fg) << 'm';
+    Out = Work.str();
+    return *this;
+}
+
 }
