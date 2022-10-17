@@ -23,7 +23,7 @@ using Tux::Rem;
 Tux::Expect<> TestText()
 {
     using Tux::Text;
-    Text Txt = " Allo <Icon: ArrowRight; Color: Yellow, BlueViolet ;> &agrave; <Color : Reset> vous tous! ";
+    Text Txt = " Allo <Icon: ArrowRight; Color: Yellow, BlueViolet &agrave; <Color : Reset> vous tous! ";
     Txt.Compile();
     std::string Str;
     Txt >> Str;
